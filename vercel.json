@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "functions": {
+    "api/chat.js":   { "maxDuration": 30 },
+    "api/news.js":   { "maxDuration": 15 },
+    "api/market.js": { "maxDuration": 15 }
+  },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)",     "dest": "/index.html" }
+  ]
+}
