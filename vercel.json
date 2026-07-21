@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/chat.js",         "use": "@vercel/node" },
+    { "src": "api/news.js",         "use": "@vercel/node" },
+    { "src": "api/market.js",       "use": "@vercel/node" },
+    { "src": "api/options.js",      "use": "@vercel/node" },
+    { "src": "api/signal.js",       "use": "@vercel/node" },
+    { "src": "api/intelligence.js", "use": "@vercel/node" },
+    { "src": "api/router.js",       "use": "@vercel/node" },
+    { "src": "api/chart.js",        "use": "@vercel/node" },
+    { "src": "api/expiry.js",       "use": "@vercel/node" },
+    { "src": "api/upstox-chain.js", "use": "@vercel/node" },
+    { "src": "api/angel-greeks.js", "use": "@vercel/node" },
+    { "src": "index.html",          "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/chat",         "dest": "/api/chat.js"         },
+    { "src": "/api/news",         "dest": "/api/news.js"         },
+    { "src": "/api/market",       "dest": "/api/market.js"       },
+    { "src": "/api/options",      "dest": "/api/options.js"      },
+    { "src": "/api/signal",       "dest": "/api/signal.js"       },
+    { "src": "/api/intelligence", "dest": "/api/intelligence.js" },
+    { "src": "/api/router",       "dest": "/api/router.js"       },
+    { "src": "/api/chart",        "dest": "/api/chart.js"        },
+    { "src": "/api/expiry",       "dest": "/api/expiry.js"       },
+    { "src": "/api/upstox-chain", "dest": "/api/upstox-chain.js" },
+    { "src": "/api/angel-greeks", "dest": "/api/angel-greeks.js" },
+    { "src": "/(.*)",             "dest": "/index.html"          }
+  ]
+}
