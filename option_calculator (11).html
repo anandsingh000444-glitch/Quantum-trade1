@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option Greeks &amp; Premium Simulator</title>
+<style>
+  :root{
+    --bg:#0A0D10;
+    --panel:#12161B;
+    --panel2:#171C22;
+    --line:#232A32;
+    --text:#DCE3E8;
+    --dim:#7C8894;
+    --ce:#22C583;
+    --ce-dim:#12332A;
+    --pe:#F0553D;
+    --pe-dim:#3A1D18;
+    --amber:#E8A83C;
+    --mono: 'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+    --sans: 'Inter','Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    padding:22px 16px 60px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+  .hero{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    border-bottom:1px solid var(--line);
+    padding-bottom:16px;margin-bottom:22px;flex-wrap:wrap;gap:10px;
+  }
+  .hero h1{
+    font-family:var(--mono);
+    font-size:22px;font-weight:700;margin:0;letter-spacing:-0.02em;
+    color:#fff;
+  }
+  .hero .sub{color:var(--dim);font-size:13px;margin-top:4px;}
+  .ticker{
+    font-family:var(--mono);font-size:12px;color:var(--amber);
+    border:1px solid var(--line);padding:6px 10px;border-radius:4px;background:var(--panel);
+  }
+  .grid{display:grid;grid-template-columns:290px 1fr;gap:16px;}
+  @media(max-width:860px){.grid{grid-template-columns:1fr;}}
+
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:16px;
+  }
+  .card h2{
+    font-size:11px;text-transform:uppercase;letter-spacing:0.08em;
+    color:var(--dim);margin:0 0 14px;font-weight:600;
+  }
+  label{
+    display:block;font-size:12px;color:var(--dim);margin-bottom:4px;margin-top:12px;
+  }
+  label:first-of-type{margin-top:0;}
+  input, select{
+    width:100%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--text);padding:8px 10px;border-radius:5px;font-family:var(--mono);
+    font-size:13px;
+  }
+  input:focus, select:focus{outline:1px solid var(--amber);border-color:var(--amber);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  .toggle{
+    display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-top:6px;
+  }
+  .toggle button{
+    flex:1;background:var(--panel2);color:var(--dim);border:none;padding:8px 0;
+    font-family:var(--mono);font-size:12px;cursor:pointer;
+  }
+  .toggle button.active.ce{background:var(--ce-dim);color:var(--ce);}
+  .toggle button.active.pe{background:var(--pe-dim);color:var(--pe);}
+
+  .move-line{display:flex;gap:8px;align-items:center;margin-top:6px;}
+  .move-line button{
+    background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    width:34px;height:34px;border-radius:5px;cursor:pointer;font-size:16px;
+  }
+  .move-line input{text-align:center;}
+
+  .greeks-grid{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+  }
+  @media(max-width:700px){.greeks-grid{grid-template-columns:repeat(2,1fr);}}
+  .g-cell{
+    background:var(--panel2);border:1px solid var(--line);border-radius:6px;
+    padding:10px 12px;
+  }
+  .g-cell .label{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;}
+  .g-cell .val{font-family:var(--mono);font-size:16px;margin-top:3px;color:#fff;}
+  .g-cell.hi .val{color:var(--amber);}
+
+  .premium-banner{
+    display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap;
+  }
+  .premium-banner .box{
+    flex:1;min-width:150px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:6px;padding:12px 14px;
+  }
+  .premium-banner .box .label{font-size:11px;color:var(--dim);text-transform:uppercase;}
+  .premium-banner .box .val{font-family:var(--mono);font-size:22px;color:#fff;margin-top:4px;}
+  .premium-banner .box.ce{border-color:var(--ce);}
+  .premium-banner .box.ce .val{color:var(--ce);}
+  .premium-banner .box.pe{border-color:var(--pe);}
+  .premium-banner .box.pe .val{color:var(--pe);}
+
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px;}
+  thead th{
+    text-align:right;color:var(--dim);font-weight:600;font-size:10.5px;
+    text-transform:uppercase;letter-spacing:0.04em;padding:8px 8px;
+    border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  thead th:first-child, tbody td:first-child{text-align:left;}
+  tbody td{padding:7px 8px;text-align:right;border-bottom:1px solid #1a1f25;}
+  tbody tr:hover{background:#171d24;}
+  tbody tr.atm{background:#1b2129;}
+  tbody tr.atm td:first-child{color:var(--amber);font-weight:700;}
+  .up{color:var(--ce);}
+  .down{color:var(--pe);}
+  .table-wrap{overflow-x:auto;}
+
+  .foot-note{color:var(--dim);font-size:11.5px;margin-top:14px;line-height:1.6;}
+  .section-gap{margin-top:16px;}
+  .badge{
+    display:inline-block;font-family:var(--mono);font-size:10.5px;padding:2px 7px;
+    border-radius:3px;background:var(--panel2);border:1px solid var(--line);color:var(--dim);
+    margin-left:6px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div>
+      <h1>OPTION GREEKS &amp; PREMIUM SIMULATOR</h1>
+      <div class="sub">Black-Scholes engine · Index move ka CE/PE premium par asar dekhein</div>
+    </div>
+    <div class="ticker" id="spotTicker">SPOT — LOADING</div>
+  </div>
+  <div style="text-align:right;font-size:10.5px;color:var(--dim);font-family:var(--mono);margin:-14px 0 18px;">
+    Your device's current date/time: <span id="deviceClock">—</span>
+  </div>
+  <script>document.getElementById('deviceClock').textContent = new Date().toString();</script>
+
+  <div class="grid">
+
+    <!-- INPUT PANEL -->
+    <div class="card">
+      <h2>Market Inputs</h2>
+
+      <label>Index</label>
+      <select id="indexName">
+        <option value="NIFTY 50">NIFTY 50</option>
+        <option value="BANK NIFTY">BANK NIFTY</option>
+        <option value="SENSEX">SENSEX</option>
+        <option value="FIN NIFTY">FIN NIFTY</option>
+      </select>
+
+      <label>Proxy Server URL <span class="badge">for live data</span></label>
+      <input type="text" id="proxyBase" value="https://option-calculator-rose.vercel.app" placeholder="https://your-vercel-app.vercel.app">
+      <div style="font-size:10.5px;color:var(--dim);margin-top:4px;">Ye tumhara apna deployed proxy server hai (CORS bypass karne ke liye) — /api/upstox-chain.js aur /api/angel-greeks.js files add karne ke baad hi ye kaam karega.</div>
+
+      <label>Index Spot (current)</label>
+      <input type="number" id="spot" value="24200" step="1">
+
+      <label>Strike Interval</label>
+      <input type="number" id="stepSize" value="100" step="1">
+
+      <label>Implied Volatility (IV %)</label>
+      <input type="number" id="iv" value="13.5" step="0.1">
+
+      <h2 class="section-gap">Live Option Chain <span class="badge">Upstox</span></h2>
+      <label>Upstox Access Token</label>
+      <input type="password" id="upstoxToken" placeholder="paste access_token here">
+
+      <label>Expiry Date</label>
+      <input type="date" id="upstoxExpiryPicker" onchange="document.getElementById('upstoxExpiry').value=this.value">
+      <input type="hidden" id="upstoxExpiry">
+      <div style="font-size:10.5px;color:var(--dim);margin-top:4px;">Apne broker app mein jo asli expiry dates listed hain, wahi yahan pick karein — ye system apna guess nahi lagata.</div>
+
+      <button id="upstoxBtn" onclick="fetchUpstoxChain()" style="width:100%;margin-top:10px;padding:9px 0;background:#12332A;border:1px solid #22C583;color:#22C583;border-radius:5px;font-family:var(--mono);font-size:12px;cursor:pointer;">
+        ⤓ Pull Live Chain (Upstox)
+      </button>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <input type="checkbox" id="upstoxAuto" onchange="toggleAutoRefresh('upstox', this.checked)" style="width:auto;">
+        <label for="upstoxAuto" style="margin:0;color:var(--dim);font-size:11.5px;cursor:pointer;">Auto-refresh every</label>
+        <select id="upstoxAutoInterval" onchange="updateAutoInterval('upstox')" style="width:auto;padding:4px 6px;font-size:11px;">
+          <option value="1">1s</option>
+          <option value="5">5s</option>
+          <option value="15">15s</option>
+          <option value="30" selected>30s</option>
+          <option value="60">60s</option>
+        </select>
+      </div>
+      <div style="font-size:10px;color:var(--pe);margin-top:4px;">⚠ 1s/5s Upstox ki rate-limit se tumhe temporarily block kar sakta hai — apni app ke plan ki request/sec limit pehle check kar lena.</div>
+      <div id="upstoxStatus" style="font-size:11px;color:var(--dim);margin-top:6px;min-height:28px;line-height:1.5;"></div>
+
+      <h2 class="section-gap">Live Option Greeks <span class="badge">Angel One</span></h2>
+      <label>JWT Auth Token (Bearer)</label>
+      <input type="password" id="angelJwt" placeholder="paste jwtToken here">
+      <label>API Key (X-PrivateKey)</label>
+      <input type="password" id="angelApiKey" placeholder="your app's API key">
+
+      <label>Underlying Name</label>
+      <select id="angelUnderlying">
+        <option value="NIFTY">NIFTY</option>
+        <option value="BANKNIFTY">BANKNIFTY</option>
+        <option value="FINNIFTY">FINNIFTY</option>
+      </select>
+
+      <label>Expiry Date</label>
+      <input type="date" id="angelExpiryPicker" onchange="setAngelExpiryFromPicker(this.value)">
+      <input type="hidden" id="angelExpiry">
+      <div style="font-size:10.5px;color:var(--dim);margin-top:4px;">Apne broker app mein jo asli expiry dates listed hain, wahi yahan pick karein.</div>
+
+      <button id="angelBtn" onclick="fetchAngelGreeks()" style="width:100%;margin-top:10px;padding:9px 0;background:#241a0d;border:1px solid #E8A83C;color:#E8A83C;border-radius:5px;font-family:var(--mono);font-size:12px;cursor:pointer;">
+        ⤓ Pull Live Greeks (Angel One)
+      </button>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <input type="checkbox" id="angelAuto" onchange="toggleAutoRefresh('angel', this.checked)" style="width:auto;">
+        <label for="angelAuto" style="margin:0;color:var(--dim);font-size:11.5px;cursor:pointer;">Auto-refresh every</label>
+        <select id="angelAutoInterval" onchange="updateAutoInterval('angel')" style="width:auto;padding:4px 6px;font-size:11px;">
+          <option value="1">1s</option>
+          <option value="5">5s</option>
+          <option value="15">15s</option>
+          <option value="30" selected>30s</option>
+          <option value="60">60s</option>
+        </select>
+      </div>
+      <div style="font-size:10px;color:var(--pe);margin-top:4px;">⚠ 1s/5s Angel One ki rate-limit se tumhe temporarily block kar sakta hai — plan ki limit check kar lena.</div>
+      <div id="angelStatus" style="font-size:11px;color:var(--dim);margin-top:6px;min-height:40px;line-height:1.5;"></div>
+      <div class="foot-note" style="margin-top:6px;">
+        Apna trading PIN/TOTP kabhi is page mein mat daalna — sirf wo JWT token daalein jo aap apne trusted login flow se pehle hi generate kar chuke hain.
+      </div>
+
+      <div class="row2">
+        <div>
+          <label>Days to Expiry</label>
+          <input type="number" id="dte" value="4" step="0.01">
+        </div>
+        <div>
+          <label>Risk-free Rate (%)</label>
+          <input type="number" id="rate" value="6.5" step="0.1">
+        </div>
+      </div>
+      <button type="button" onclick="autoCalcDte()" style="width:100%;margin-top:8px;padding:7px 0;background:none;border:1px solid var(--line);color:var(--amber);border-radius:5px;font-family:var(--mono);font-size:11px;cursor:pointer;">
+        ⏱ Auto-calc DTE from expiry date + abhi ka time
+      </button>
+      <div style="font-size:10px;color:var(--dim);margin-top:4px;">Sirf '0' ya '1' likhne se poora din ignore ho jata hai — expiry ke din bhi kai ghante time value bacha hota hai. Ye button exact fraction nikalta hai (market close 3:30 PM IST maan kar).</div>
+
+      <h2 class="section-gap">Simulate Index Move</h2>
+      <label>Move index by (points, +up / -down)</label>
+      <div class="move-line">
+        <button onclick="bumpMove(-50)">−</button>
+        <input type="number" id="moveVal" value="200" step="10">
+        <button onclick="bumpMove(50)">+</button>
+      </div>
+
+      <label>Strikes each side to show</label>
+      <input type="number" id="numStrikes" value="5" step="1">
+
+      <h2 class="section-gap">Greeks Panel — Strike</h2>
+      <label>Select strike for detailed Greeks</label>
+      <select id="focusStrike"></select>
+
+      <div class="foot-note">
+        Tip: focus strike ATM se shuru hota hai. Niche table mein saare strikes ka CE/PE premium move se pehle aur baad mein dikhta hai.
+      </div>
+    </div>
+
+    <!-- OUTPUT PANEL -->
+    <div>
+      <div class="card">
+        <h2>Focus Strike — Premium &amp; All Greeks <span class="badge" id="focusLabel">—</span></h2>
+
+        <div class="premium-banner">
+          <div class="box ce">
+            <div class="label">CE Premium (now)</div>
+            <div class="val" id="ceNow">—</div>
+          </div>
+          <div class="box ce">
+            <div class="label">CE Premium (after move)</div>
+            <div class="val" id="ceAfter">—</div>
+          </div>
+          <div class="box pe">
+            <div class="label">PE Premium (now)</div>
+            <div class="val" id="peNow">—</div>
+          </div>
+          <div class="box pe">
+            <div class="label">PE Premium (after move)</div>
+            <div class="val" id="peAfter">—</div>
+          </div>
+        </div>
+
+        <div class="toggle" id="typeToggle">
+          <button class="active ce" data-type="CE" onclick="setGreekType('CE')">CE Greeks</button>
+          <button class="pe" data-type="PE" onclick="setGreekType('PE')">PE Greeks</button>
+        </div>
+
+        <div class="greeks-grid section-gap" id="greeksGrid"></div>
+      </div>
+
+      <div class="card section-gap">
+        <h2>Trade Plan Premium Table <span class="badge">Entry · SL · TP1-3</span></h2>
+        <div class="foot-note" style="margin-bottom:12px;">
+          Apne chart/signal ke Entry, SL, aur Targets ke index levels yahan daalo (jaise kisi indicator se aaye) — jo bhi strike choose karo (ITM/ATM/OTM/kuch bhi), har level pe CE aur PE ka premium dikh jayega.
+        </div>
+
+        <button type="button" onclick="syncFromMoveScenario()" style="width:100%;margin-bottom:12px;padding:7px 0;background:none;border:1px solid var(--line);color:var(--amber);border-radius:5px;font-family:var(--mono);font-size:11px;cursor:pointer;">
+          ⇅ Sync Entry/Exit se "All Strikes" spot/move scenario
+        </button>
+
+        <label>Strike for this trade</label>
+        <select id="tradeStrike"></select>
+
+        <label>Lot Size</label>
+        <input type="number" id="lotSize" value="75" step="1">
+        <div style="font-size:10px;color:var(--dim);margin-top:4px;">NIFTY=75, BANKNIFTY=15, FINNIFTY=40, SENSEX=10 (exchange ke current lot size ke hisaab se badal lena — ye time-to-time revise hota hai).</div>
+
+        <div id="signalSummary" class="section-gap" style="padding:12px 14px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);"></div>
+
+        <div class="table-wrap section-gap">
+          <table id="tradePlanTable">
+            <thead>
+              <tr>
+                <th style="text-align:left;">Level</th>
+                <th>Index</th>
+                <th>CE Premium</th>
+                <th>CE Δ vs Entry</th>
+                <th>PE Premium</th>
+                <th>PE Δ vs Entry</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="text-align:left;">Entry</td>
+                <td><input type="number" id="lvlEntry" value="24226.55" step="0.01" style="width:100px;text-align:right;"></td>
+                <td id="lvlEntryCe">—</td><td id="lvlEntryCeD">—</td>
+                <td id="lvlEntryPe">—</td><td id="lvlEntryPeD">—</td>
+              </tr>
+              <tr>
+                <td style="text-align:left;color:var(--pe);">SL</td>
+                <td><input type="number" id="lvlSL" value="24266.27" step="0.01" style="width:100px;text-align:right;"></td>
+                <td id="lvlSLCe">—</td><td id="lvlSLCeD">—</td>
+                <td id="lvlSLPe">—</td><td id="lvlSLPeD">—</td>
+              </tr>
+              <tr>
+                <td style="text-align:left;color:var(--ce);">TP1</td>
+                <td><input type="number" id="lvlTP1" value="24186.83" step="0.01" style="width:100px;text-align:right;"></td>
+                <td id="lvlTP1Ce">—</td><td id="lvlTP1CeD">—</td>
+                <td id="lvlTP1Pe">—</td><td id="lvlTP1PeD">—</td>
+              </tr>
+              <tr>
+                <td style="text-align:left;color:var(--ce);">TP2</td>
+                <td><input type="number" id="lvlTP2" value="24147.11" step="0.01" style="width:100px;text-align:right;"></td>
+                <td id="lvlTP2Ce">—</td><td id="lvlTP2CeD">—</td>
+                <td id="lvlTP2Pe">—</td><td id="lvlTP2PeD">—</td>
+              </tr>
+              <tr>
+                <td style="text-align:left;color:var(--ce);">TP3</td>
+                <td><input type="number" id="lvlTP3" value="24107.38" step="0.01" style="width:100px;text-align:right;"></td>
+                <td id="lvlTP3Ce">—</td><td id="lvlTP3CeD">—</td>
+                <td id="lvlTP3Pe">—</td><td id="lvlTP3PeD">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="foot-note" style="margin-top:10px;">
+          Δ hamesha "Entry" ke muqable calculate hota hai. SELL signal ho to usually PE side dekhna hai (buy PE @ Entry, TP par PE badhna chahiye); BUY signal ho to CE side dekhna hai.
+        </div>
+      </div>
+
+      <div class="card section-gap">
+        <h2>Market Sentiment <span class="badge">Live, bina manual entry ke</span></h2>
+        <label>India VIX (Fear Gauge) %</label>
+        <input type="number" id="vixInput" value="13.5" step="0.1">
+        <div id="vixGauge" style="margin-top:10px;"></div>
+        <div class="foot-note" style="margin-top:10px;">PCR (Put-Call OI Ratio) Upstox live chain se auto-calculate hota hai — "Pull Live Chain (Upstox)" button dabane ke baad yahan khud dikh jayega, kisi entry ki zaroorat nahi.</div>
+        <div class="greeks-grid section-gap" id="sentimentGrid" style="grid-template-columns:repeat(3,1fr);"></div>
+
+        <h2 class="section-gap">ARTH — AI Risk Thermometer <span class="badge">Custom composite, official metric nahi</span></h2>
+        <div class="foot-note" style="margin-bottom:10px;">VIX + PCR + expiry-nearness (gamma risk) ko milaake ek hi 0-100 risk score — "market abhi kitni jhatke wali/risky state mein hai" iska ek quick heuristic sense.</div>
+        <div id="arthGauge"></div>
+      </div>
+
+      <div class="card section-gap">
+        <h2>Market News &amp; Sentiment <span class="badge">Marketaux</span></h2>
+
+        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;">
+          <div style="flex-shrink:0;">
+            <svg id="sentimentNeedleSvg" viewBox="0 0 200 120" width="200" height="120"></svg>
+            <div style="text-align:center;margin-top:-8px;">
+              <div id="sentimentGaugeLabel" style="font-family:var(--mono);font-size:16px;font-weight:700;">—</div>
+              <div id="sentimentGaugeScore" style="font-family:var(--mono);font-size:11px;color:var(--dim);">—/100</div>
+            </div>
+          </div>
+
+          <div style="flex:1;min-width:240px;">
+            <label>Search Symbols/Keywords</label>
+            <input type="text" id="newsQuery" value="NIFTY,SENSEX,RBI" placeholder="NIFTY,BANKNIFTY,RBI">
+            <button id="newsBtn" onclick="fetchMarketNews()" style="width:100%;margin-top:10px;padding:9px 0;background:#241a0d;border:1px solid #E8A83C;color:#E8A83C;border-radius:5px;font-family:var(--mono);font-size:12px;cursor:pointer;">
+              ⤓ Fetch News Feed
+            </button>
+            <div id="newsStatus" style="font-size:11px;color:var(--dim);margin-top:6px;min-height:16px;"></div>
+          </div>
+        </div>
+
+        <div id="newsFeedList" class="section-gap"></div>
+      </div>
+
+      <div class="card section-gap">
+        <h2>All Strikes — Before vs After Move</h2>
+        <div class="table-wrap">
+          <table id="strikeTable">
+            <thead>
+              <tr id="strikeTableHead">
+                <th>Strike</th>
+                <th id="thCeNow">CE now</th>
+                <th id="thCeAfter">CE after</th>
+                <th>CE Δ</th>
+                <th id="thPeNow">PE now</th>
+                <th id="thPeAfter">PE after</th>
+                <th>PE Δ</th>
+              </tr>
+            </thead>
+            <tbody id="strikeBody"></tbody>
+          </table>
+        </div>
+        <div class="foot-note">
+          Δ (change) actual Black-Scholes repricing se calculate hota hai — sirf Delta approximation nahi, isliye Gamma/Vega ka effect bhi included hai.
+          Time decay (Theta) is table mein zero rakha gaya hai (instant move assume kiya gaya hai); agar din bhi guzarna hai to DTE khud adjust karein.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Black-Scholes core ----------
+function erf(x){
+  const sign = x<0?-1:1; x=Math.abs(x);
+  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+  const t=1/(1+p*x);
+  const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return sign*y;
+}
+function N(x){ return 0.5*(1+erf(x/Math.SQRT2)); }
+function phi(x){ return Math.exp(-x*x/2)/Math.sqrt(2*Math.PI); }
+
+// returns full greek set for one option
+function bs(S,K,Tdays,sigmaPct,rPct,type){
+  const T = Math.max(Tdays,0.0001)/365;
+  const sigma = Math.max(sigmaPct,0.01)/100;
+  const r = rPct/100;
+  const sqrtT = Math.sqrt(T);
+
+  const d1 = (Math.log(S/K) + (r + sigma*sigma/2)*T) / (sigma*sqrtT);
+  const d2 = d1 - sigma*sqrtT;
+  const Nd1=N(d1), Nd2=N(d2), Nnd1=N(-d1), Nnd2=N(-d2), pd1=phi(d1);
+  const disc = Math.exp(-r*T);
+
+  let price, delta, theta, rho;
+  if(type==='CE'){
+    price = S*Nd1 - K*disc*Nd2;
+    delta = Nd1;
+    theta = (-(S*pd1*sigma)/(2*sqrtT) - r*K*disc*Nd2)/365;
+    rho = (K*T*disc*Nd2)/100;
+  } else {
+    price = K*disc*Nnd2 - S*Nnd1;
+    delta = Nd1-1;
+    theta = (-(S*pd1*sigma)/(2*sqrtT) + r*K*disc*Nnd2)/365;
+    rho = (-K*T*disc*Nnd2)/100;
+  }
+
+  const gamma = pd1/(S*sigma*sqrtT);
+  const vega = (S*pd1*sqrtT)/100;
+  const vanna = -pd1*d2/sigma;
+  const vomma = vega*d1*d2/sigma;
+  const charm = (-pd1*(2*r*T - d2*sigma*sqrtT)/(2*T*sigma*sqrtT))/365;
+  const speed = (-gamma/S)*(d1/(sigma*sqrtT)+1);
+  const zomma = gamma*(d1*d2-1)/sigma;
+  const color = (-pd1/(2*S*T*sigma*sqrtT))*(1 + (2*r*T - d2*sigma*sqrtT)/(sigma*sqrtT)*d1)/365;
+  const lambda = price>0.05 ? (delta*S/price) : 0;
+
+  return {price, delta, gamma, theta, vega, rho, vanna, vomma, charm, speed, zomma, color, lambda};
+}
+
+
+// live option chain data pulled from Upstox: { strike: {ceLtp, ceIv, peLtp, peIv} }
+let liveChain = null;
+let liveSpot = null;
+let livePCR = null;
+
+const INSTRUMENT_KEYS = {
+  'NIFTY 50': 'NSE_INDEX|Nifty 50',
+  'BANK NIFTY': 'NSE_INDEX|Nifty Bank',
+  'FIN NIFTY': 'NSE_INDEX|Nifty Fin Service',
+  'SENSEX': 'BSE_INDEX|SENSEX'
+};
+
+async function fetchUpstoxChain(){
+  const btn = document.getElementById('upstoxBtn');
+  const status = document.getElementById('upstoxStatus');
+  const token = document.getElementById('upstoxToken').value.trim();
+  const expiry = document.getElementById('upstoxExpiry').value.trim();
+  const idxName = document.getElementById('indexName').value;
+  const instrumentKey = INSTRUMENT_KEYS[idxName];
+
+  if(!token){ status.textContent='✗ Pehle apna Upstox access_token daalein.'; status.style.color='var(--pe)'; return; }
+  if(!expiry){ status.textContent='✗ Expiry date daalein (YYYY-MM-DD).'; status.style.color='var(--pe)'; return; }
+
+  btn.disabled = true; btn.textContent = '⤓ Fetching chain...';
+  status.textContent = 'Upstox se ' + idxName + ' option chain la raha hoon...';
+  status.style.color = 'var(--dim)';
+
+  try{
+    const proxyBase = document.getElementById('proxyBase').value.trim().replace(/\/$/,'');
+    const url = `${proxyBase}/api/upstox-chain?token=${encodeURIComponent(token)}&instrument_key=${encodeURIComponent(instrumentKey)}&expiry_date=${encodeURIComponent(expiry)}`;
+    const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+
+    if(!resp.ok){
+      const errBody = await resp.text();
+      throw new Error(`HTTP ${resp.status}: ${errBody.slice(0,200)}`);
+    }
+    const json = await resp.json();
+    const rows = json.data || [];
+    if(!rows.length) throw new Error('Empty response — expiry date ya instrument key check karein.');
+
+    const chain = {};
+    let spotVal = null;
+    let totalCeOi = 0, totalPeOi = 0;
+    rows.forEach(r=>{
+      const K = r.strike_price;
+      if(spotVal===null && r.underlying_spot_price) spotVal = r.underlying_spot_price;
+      const ceOi = r.call_options?.market_data?.oi ?? 0;
+      const peOi = r.put_options?.market_data?.oi ?? 0;
+      totalCeOi += ceOi;
+      totalPeOi += peOi;
+      chain[K] = {
+        ceLtp: r.call_options?.market_data?.ltp ?? null,
+        ceIv: r.call_options?.option_greeks?.iv ?? null,
+        ceOi: ceOi,
+        peLtp: r.put_options?.market_data?.ltp ?? null,
+        peIv: r.put_options?.option_greeks?.iv ?? null,
+        peOi: peOi,
+      };
+    });
+
+    liveChain = chain;
+    liveSpot = spotVal;
+    livePCR = totalCeOi > 0 ? (totalPeOi / totalCeOi) : null;
+    if(spotVal){ document.getElementById('spot').value = Math.round(spotVal); }
+
+    status.innerHTML = `✓ Live chain mila — ${Object.keys(chain).length} strikes. Spot: ${fmt(spotVal,0)}${livePCR ? ' · PCR: ' + fmt(livePCR,2) : ''}. Table ab actual LTP + per-strike IV use kar rahi hai.`;
+    status.style.color = 'var(--ce)';
+    render();
+  } catch(err){
+    console.error('Upstox fetch error:', err);
+    liveChain = null;
+    let msg = err.message || String(err);
+    if(msg.includes('Failed to fetch') || msg.includes('NetworkError')){
+      msg = 'Browser se direct Upstox API call block ho gayi (CORS). Ye broker-side restriction hai, is HTML file ke andar se fix nahi ho sakta — token/expiry sahi hone ke bawajood bhi.';
+    }
+    status.textContent = '✗ ' + msg;
+    status.style.color = 'var(--pe)';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⤓ Pull Live Chain (Upstox)';
+  }
+}
+
+
+function syncFromMoveScenario(){
+  const spot = parseFloat(document.getElementById('spot').value)||0;
+  const move = parseFloat(document.getElementById('moveVal').value)||0;
+  document.getElementById('lvlEntry').value = spot;
+  document.getElementById('lvlTP1').value = spot + move;
+  render();
+}
+
+function autoCalcDte(){
+  // Prefer whichever expiry date picker has a value; fall back to Upstox's.
+  const upIso = document.getElementById('upstoxExpiryPicker').value;
+  const angIso = document.getElementById('angelExpiryPicker').value;
+  const iso = upIso || angIso;
+  if(!iso){
+    alert("Pehle upar Expiry Date (Upstox ya Angel One wala date-picker) select karo, phir ye button dabao.");
+    return;
+  }
+  const [y,m,d] = iso.split('-').map(Number);
+  // Assume NSE market close at 15:30 IST on expiry day
+  const expiryMoment = new Date(y, m-1, d, 15, 30, 0);
+  const now = new Date();
+  const msRemaining = expiryMoment - now;
+  const daysRemaining = Math.max(0.001, msRemaining / (1000*60*60*24));
+  document.getElementById('dte').value = daysRemaining.toFixed(3);
+  render();
+}
+
+function setAngelExpiryFromPicker(isoDate){
+  if(!isoDate) return;
+  const [y,m,d] = isoDate.split('-').map(Number);
+  const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('angelExpiry').value = `${String(d).padStart(2,'0')}${MONTHS[m-1]}${y}`;
+}
+
+// live Angel One greeks: { strike: { CE:{delta,gamma,theta,vega,iv}, PE:{...} } }
+let angelChain = null;
+
+async function fetchAngelGreeks(){
+  const btn = document.getElementById('angelBtn');
+  const status = document.getElementById('angelStatus');
+  const jwt = document.getElementById('angelJwt').value.trim();
+  const apiKey = document.getElementById('angelApiKey').value.trim();
+  const name = document.getElementById('angelUnderlying').value;
+  const expiry = document.getElementById('angelExpiry').value.trim();
+
+  if(!jwt){ status.textContent='✗ JWT token daalein.'; status.style.color='var(--pe)'; return; }
+  if(!expiry){ status.textContent='✗ Expiry daalein, e.g. 24JUL2026.'; status.style.color='var(--pe)'; return; }
+
+  btn.disabled = true; btn.textContent = '⤓ Fetching greeks...';
+  status.textContent = 'Angel One se ' + name + ' option greeks la raha hoon...';
+  status.style.color = 'var(--dim)';
+
+  try{
+    // best-effort public IP (used only in the required security header)
+    let publicIp = '106.51.1.1';
+    try{
+      const ipResp = await fetch('https://api.ipify.org?format=json');
+      if(ipResp.ok){ const ipJson = await ipResp.json(); if(ipJson.ip) publicIp = ipJson.ip; }
+    }catch(e){ /* fall back to placeholder */ }
+
+    const proxyBase = document.getElementById('proxyBase').value.trim().replace(/\/$/,'');
+    const proxyUrl = `${proxyBase}/api/angel-greeks?jwt=${encodeURIComponent(jwt)}&apiKey=${encodeURIComponent(apiKey)}&name=${encodeURIComponent(name)}&expirydate=${encodeURIComponent(expiry)}&publicIp=${encodeURIComponent(publicIp)}`;
+    const resp = await fetch(proxyUrl, { headers: { 'Accept': 'application/json' } });
+
+    if(!resp.ok){
+      const errBody = await resp.text();
+      throw new Error(`HTTP ${resp.status}: ${errBody.slice(0,200)}`);
+    }
+    const json = await resp.json();
+    if(json.status !== true || !json.data || !json.data.length){
+      throw new Error(json.message || 'Empty response — underlying/expiry check karein.');
+    }
+
+    const chain = {};
+    json.data.forEach(row=>{
+      const K = Math.round(parseFloat(row.strikePrice));
+      const type = row.optionType; // 'CE' or 'PE'
+      if(!chain[K]) chain[K] = {};
+      chain[K][type] = {
+        delta: parseFloat(row.delta),
+        gamma: parseFloat(row.gamma),
+        theta: parseFloat(row.theta),
+        vega: parseFloat(row.vega),
+        iv: parseFloat(row.impliedVolatility)
+      };
+    });
+
+    angelChain = chain;
+    status.innerHTML = `✓ Live greeks mile — ${Object.keys(chain).length} strikes. Note: is API mein LTP/premium nahi aata, sirf Greeks + IV — premium in real IV se Black-Scholes ke through calculate hoga.`;
+    status.style.color = 'var(--ce)';
+    render();
+  } catch(err){
+    console.error('Angel One fetch error:', err);
+    angelChain = null;
+    let msg = err.message || String(err);
+    if(msg.includes('Failed to fetch') || msg.includes('NetworkError')){
+      msg = 'Browser se direct Angel One API call block ho gayi (CORS). Ye broker-side restriction hai, is HTML file ke andar se fix nahi ho sakta.';
+    }
+    status.textContent = '✗ ' + msg;
+    status.style.color = 'var(--pe)';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⤓ Pull Live Greeks (Angel One)';
+  }
+}
+
+
+let currentGreekType = 'CE';
+function setGreekType(t){
+  currentGreekType = t;
+  document.querySelectorAll('#typeToggle button').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`#typeToggle button[data-type="${t}"]`).classList.add('active');
+  render();
+}
+function bumpMove(delta){
+  const el = document.getElementById('moveVal');
+  el.value = (parseFloat(el.value)||0) + delta;
+  render();
+}
+
+function nearestStep(val, step){ return Math.round(val/step)*step; }
+
+function populateFocusStrikes(selId, spot, step, n){
+  const sel = document.getElementById(selId);
+  const atm = nearestStep(spot, step);
+  const prevVal = sel.value;
+  sel.innerHTML = '';
+  for(let i=-n;i<=n;i++){
+    const k = atm + i*step;
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = k + (k===atm ? ' (ATM)' : '');
+    sel.appendChild(opt);
+  }
+  if(prevVal && [...sel.options].some(o=>o.value===prevVal)){
+    sel.value = prevVal;
+  } else {
+    sel.value = atm;
+  }
+}
+
+function fmt(n, d=2){
+  if(!isFinite(n)) return '—';
+  return n.toLocaleString('en-IN',{minimumFractionDigits:d, maximumFractionDigits:d});
+}
+
+// --- auto-refresh management ---
+let autoTimers = { upstox: null, angel: null };
+
+// ---- Semicircular Sentiment Needle Gauge ----
+function drawSentimentNeedle(score, label){
+  const cx=100, cy=100, r=80, needleLen=68;
+  function pt(angleDeg, radius){
+    const rad = angleDeg * Math.PI/180;
+    return { x: cx + radius*Math.cos(rad), y: cy - radius*Math.sin(rad) };
+  }
+  function arcPath(a1,a2,radius){
+    const p1 = pt(a1,radius), p2 = pt(a2,radius);
+    return `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} A ${radius} ${radius} 0 0 1 ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  const needleAngle = 180 - (Math.max(0,Math.min(100,score))/100)*180;
+  const tip = pt(needleAngle, needleLen);
+
+  const svg = document.getElementById('sentimentNeedleSvg');
+  svg.innerHTML = `
+    <path d="${arcPath(180,120,80)}" stroke="#F0553D" stroke-width="18" fill="none" stroke-linecap="round"/>
+    <path d="${arcPath(120,60,80)}"  stroke="#E8A83C" stroke-width="18" fill="none"/>
+    <path d="${arcPath(60,0,80)}"    stroke="#22C583" stroke-width="18" fill="none" stroke-linecap="round"/>
+    <line x1="${cx}" y1="${cy}" x2="${tip.x.toFixed(1)}" y2="${tip.y.toFixed(1)}" stroke="#DCE3E8" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="7" fill="#DCE3E8"/>
+  `;
+  document.getElementById('sentimentGaugeLabel').textContent = label;
+  document.getElementById('sentimentGaugeLabel').style.color =
+    score>66 ? '#22C583' : (score<33 ? '#F0553D' : '#E8A83C');
+  document.getElementById('sentimentGaugeScore').textContent = Math.round(score) + '/100';
+}
+
+// ---- News Feed (via user's own proxy + Marketaux) ----
+async function fetchMarketNews(){
+  const btn = document.getElementById('newsBtn');
+  const status = document.getElementById('newsStatus');
+  const proxyBase = document.getElementById('proxyBase').value.trim().replace(/\/$/,'');
+  const symbols = document.getElementById('newsQuery').value.trim();
+
+  btn.disabled = true; btn.textContent = '⤓ Fetching...';
+  status.textContent = 'News la raha hoon...';
+  status.style.color = 'var(--dim)';
+
+  try{
+    const url = `${proxyBase}/api/market-news?symbols=${encodeURIComponent(symbols)}`;
+    const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if(!resp.ok){
+      const errBody = await resp.text();
+      throw new Error(`HTTP ${resp.status}: ${errBody.slice(0,200)}`);
+    }
+    const json = await resp.json();
+    const articles = json.data || [];
+    if(!articles.length) throw new Error('Koi news nahi mili — symbols/keywords check karein.');
+
+    const list = document.getElementById('newsFeedList');
+    list.innerHTML = articles.slice(0,12).map(a=>{
+      const time = a.published_at ? new Date(a.published_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+      const sentiment = (a.entities && a.entities[0] && a.entities[0].sentiment_score!=null)
+        ? a.entities[0].sentiment_score : null;
+      const sentColor = sentiment==null ? 'var(--dim)' : (sentiment>0.1?'var(--ce)':(sentiment<-0.1?'var(--pe)':'var(--amber)'));
+      return `
+        <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #1a1f25;font-size:12.5px;">
+          <div style="color:var(--dim);font-family:var(--mono);width:48px;flex-shrink:0;">${time}</div>
+          <div style="flex:1;">
+            <span style="color:${sentColor};font-family:var(--mono);font-size:10px;">${a.source||''}</span>
+            <div>${a.title}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    status.textContent = `✓ ${articles.length} articles mile`;
+    status.style.color = 'var(--ce)';
+
+    // aggregate sentiment score from articles -> feed into the gauge as an additional signal
+    const scored = articles.filter(a=>a.entities && a.entities[0] && a.entities[0].sentiment_score!=null);
+    if(scored.length){
+      const avg = scored.reduce((s,a)=>s+a.entities[0].sentiment_score,0)/scored.length;
+      const newsScore = Math.round(((avg+1)/2)*100); // map [-1,1] -> [0,100]
+      const newsLabel = newsScore>66?'Bullish':(newsScore<33?'Bearish':'Neutral');
+      drawSentimentNeedle(newsScore, newsLabel);
+    }
+  } catch(err){
+    console.error('News fetch error:', err);
+    let msg = err.message || String(err);
+    if(msg.includes('Failed to fetch')) msg = 'Proxy/CORS issue — pehle /api/market-news.js deploy hui hai ya nahi check karein.';
+    status.textContent = '✗ ' + msg;
+    status.style.color = 'var(--pe)';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⤓ Fetch News Feed';
+  }
+}
+
+
+function toggleAutoRefresh(which, enabled){
+  // clear any existing timer for this source first
+  if(autoTimers[which]){
+    clearInterval(autoTimers[which]);
+    autoTimers[which] = null;
+  }
+  if(!enabled) return;
+
+  const intervalSelect = document.getElementById(which + 'AutoInterval');
+  const seconds = parseInt(intervalSelect.value) || 30;
+  const fetchFn = which === 'upstox' ? fetchUpstoxChain : fetchAngelGreeks;
+  const btnId = which === 'upstox' ? 'upstoxBtn' : 'angelBtn';
+
+  autoTimers[which] = setInterval(() => {
+    const btn = document.getElementById(btnId);
+    if(btn && btn.disabled) return; // a fetch is already in progress, skip this tick
+    fetchFn();
+  }, seconds * 1000);
+}
+
+function updateAutoInterval(which){
+  const checkbox = document.getElementById(which + 'Auto');
+  if(checkbox.checked){
+    toggleAutoRefresh(which, true); // restart timer with new interval
+  }
+}
+
+function render(){
+  const spot = parseFloat(document.getElementById('spot').value)||0;
+  const step = parseFloat(document.getElementById('stepSize').value)||50;
+  const iv = parseFloat(document.getElementById('iv').value)||0;
+  const dte = parseFloat(document.getElementById('dte').value)||1;
+  const rate = parseFloat(document.getElementById('rate').value)||0;
+  const move = parseFloat(document.getElementById('moveVal').value)||0;
+  const numStrikes = Math.max(1, parseInt(document.getElementById('numStrikes').value)||5);
+  const newSpot = spot + move;
+
+  document.getElementById('spotTicker').textContent =
+    `SPOT ${fmt(spot,0)}  →  ${fmt(newSpot,0)}  (${move>=0?'+':''}${fmt(move,0)})`;
+
+  document.getElementById('thCeNow').textContent = `CE @ ${fmt(spot,0)} (now)`;
+  document.getElementById('thCeAfter').textContent = `CE @ ${fmt(newSpot,0)} (after)`;
+  document.getElementById('thPeNow').textContent = `PE @ ${fmt(spot,0)} (now)`;
+  document.getElementById('thPeAfter').textContent = `PE @ ${fmt(newSpot,0)} (after)`;
+
+  populateFocusStrikes('focusStrike', spot, step, numStrikes);
+  const focusK = parseFloat(document.getElementById('focusStrike').value) || nearestStep(spot, step);
+  document.getElementById('focusLabel').textContent = 'Strike ' + focusK;
+
+  // pick IV for focus strike: Upstox live > Angel live > manual field
+  const focusLive = liveChain ? liveChain[focusK] : null;
+  const focusAngel = angelChain ? angelChain[focusK] : null;
+  const focusCeIv = (focusLive && focusLive.ceIv) || (focusAngel && focusAngel.CE && focusAngel.CE.iv) || iv;
+  const focusPeIv = (focusLive && focusLive.peIv) || (focusAngel && focusAngel.PE && focusAngel.PE.iv) || iv;
+
+  // Premium banner
+  const ceNow = bs(spot, focusK, dte, focusCeIv, rate, 'CE');
+  const ceAfter = bs(newSpot, focusK, dte, focusCeIv, rate, 'CE');
+  const peNow = bs(spot, focusK, dte, focusPeIv, rate, 'PE');
+  const peAfter = bs(newSpot, focusK, dte, focusPeIv, rate, 'PE');
+
+  document.getElementById('ceNow').textContent = (focusLive && focusLive.ceLtp!=null) ? fmt(focusLive.ceLtp) : fmt(ceNow.price);
+  document.getElementById('ceAfter').textContent = fmt(ceAfter.price);
+  document.getElementById('peNow').textContent = (focusLive && focusLive.peLtp!=null) ? fmt(focusLive.peLtp) : fmt(peNow.price);
+  document.getElementById('peAfter').textContent = fmt(peAfter.price);
+
+  // Greeks grid for selected type — prefer Angel One's real greeks when we have them
+  const bsG = currentGreekType==='CE' ? ceNow : peNow;
+  const angelG = focusAngel ? focusAngel[currentGreekType] : null;
+  const usedIv = currentGreekType==='CE' ? focusCeIv : focusPeIv;
+  const g = angelG ? {...bsG, delta:angelG.delta, gamma:angelG.gamma, theta:angelG.theta/365, vega:angelG.vega} : bsG;
+  const cells = [
+    ['Delta', g.delta, 4],
+    ['Gamma', g.gamma, 6],
+    ['Theta (per day)', angelG ? angelG.theta : g.theta, 3],
+    ['Vega (per 1% IV)', angelG ? angelG.vega : g.vega, 3],
+    ['IV used (%)', usedIv, 2],
+    ['Rho (per 1% rate)', g.rho, 3],
+    ['Charm (per day)', g.charm, 6],
+    ['Vanna', g.vanna, 5],
+    ['Vomma', g.vomma, 4],
+    ['Color (per day)', g.color, 7],
+    ['Speed', g.speed, 7],
+    ['Zomma', g.zomma, 5],
+    ['Lambda', g.lambda, 2],
+  ];
+  const grid = document.getElementById('greeksGrid');
+  grid.innerHTML = cells.map(([label,val,d])=>`
+    <div class="g-cell${label==='Delta'?' hi':''}">
+      <div class="label">${label}${angelG && ['Delta','Gamma','Theta (per day)','Vega (per 1% IV)'].includes(label) ? ' <span class="badge" style="padding:1px 4px;">live</span>' : ''}</div>
+      <div class="val">${fmt(val,d)}</div>
+    </div>
+  `).join('');
+
+  // ---- Trade Plan Premium Table (Entry / SL / TP1 / TP2 / TP3) ----
+  populateFocusStrikes('tradeStrike', spot, step, numStrikes); // reuse strike list builder
+  const tradeK = parseFloat(document.getElementById('tradeStrike').value) || nearestStep(spot, step);
+
+  const tLive = liveChain ? liveChain[tradeK] : null;
+  const tAngel = angelChain ? angelChain[tradeK] : null;
+  const tCeIv = (tLive && tLive.ceIv) || (tAngel && tAngel.CE && tAngel.CE.iv) || iv;
+  const tPeIv = (tLive && tLive.peIv) || (tAngel && tAngel.PE && tAngel.PE.iv) || iv;
+
+  const levels = [
+    {key:'Entry', id:'lvlEntry'},
+    {key:'SL',    id:'lvlSL'},
+    {key:'TP1',   id:'lvlTP1'},
+    {key:'TP2',   id:'lvlTP2'},
+    {key:'TP3',   id:'lvlTP3'},
+  ];
+  const entryLevelVal = parseFloat(document.getElementById('lvlEntry').value) || spot;
+  const ceEntryPrice = bs(entryLevelVal, tradeK, dte, tCeIv, rate, 'CE').price;
+  const peEntryPrice = bs(entryLevelVal, tradeK, dte, tPeIv, rate, 'PE').price;
+
+  levels.forEach(({key,id})=>{
+    const lvlVal = parseFloat(document.getElementById(id).value) || entryLevelVal;
+    const ceP = bs(lvlVal, tradeK, dte, tCeIv, rate, 'CE').price;
+    const peP = bs(lvlVal, tradeK, dte, tPeIv, rate, 'PE').price;
+    const ceD = ceP - ceEntryPrice;
+    const peD = peP - peEntryPrice;
+
+    document.getElementById(id+'Ce').textContent = fmt(ceP);
+    document.getElementById(id+'Pe').textContent = fmt(peP);
+
+    const ceDEl = document.getElementById(id+'CeD');
+    const peDEl = document.getElementById(id+'PeD');
+    if(key==='Entry'){
+      ceDEl.textContent = '—';
+      peDEl.textContent = '—';
+      ceDEl.className = ''; peDEl.className = '';
+    } else {
+      ceDEl.textContent = (ceD>=0?'+':'') + fmt(ceD);
+      peDEl.textContent = (peD>=0?'+':'') + fmt(peD);
+      ceDEl.className = ceD>=0?'up':'down';
+      peDEl.className = peD>=0?'up':'down';
+    }
+  });
+
+  // ---- Signal Direction Auto-detect + Risk:Reward + Rupee P&L ----
+  const lotSize = Math.max(1, parseInt(document.getElementById('lotSize').value) || 75);
+  const slVal  = parseFloat(document.getElementById('lvlSL').value)  || entryLevelVal;
+  const tp1Val = parseFloat(document.getElementById('lvlTP1').value) || entryLevelVal;
+  const tp2Val = parseFloat(document.getElementById('lvlTP2').value) || entryLevelVal;
+  const tp3Val = parseFloat(document.getElementById('lvlTP3').value) || entryLevelVal;
+
+  // Bearish if targets are below entry (index expected to fall) -> relevant side is PE.
+  // Bullish if targets are above entry -> relevant side is CE.
+  const isBearish = tp1Val < entryLevelVal;
+  const side = isBearish ? 'PE' : 'CE';
+  const sideColor = isBearish ? 'var(--pe)' : 'var(--ce)';
+  const sideIv = isBearish ? tPeIv : tCeIv;
+
+  const entryPrice = bs(entryLevelVal, tradeK, dte, sideIv, rate, side).price;
+  const slPrice     = bs(slVal,  tradeK, dte, sideIv, rate, side).price;
+  const tp1Price    = bs(tp1Val, tradeK, dte, sideIv, rate, side).price;
+  const tp2Price    = bs(tp2Val, tradeK, dte, sideIv, rate, side).price;
+  const tp3Price    = bs(tp3Val, tradeK, dte, sideIv, rate, side).price;
+
+  // For a bought option, loss at SL and gain at TP should both be positive numbers on the
+  // "relevant" side if the setup is sound — if not, the strike choice may be poor for this trade.
+  const riskPremium = entryPrice - slPrice;      // premium lost if SL hits (should be +ve if setup makes sense)
+  const rw1 = tp1Price - entryPrice;             // premium gained at TP1
+  const rw2 = tp2Price - entryPrice;
+  const rw3 = tp3Price - entryPrice;
+
+  const riskRupee = riskPremium * lotSize;
+  const rw1Rupee = rw1 * lotSize;
+  const rw2Rupee = rw2 * lotSize;
+  const rw3Rupee = rw3 * lotSize;
+
+  const rr1 = riskPremium !== 0 ? (rw1/riskPremium) : NaN;
+  const rr2 = riskPremium !== 0 ? (rw2/riskPremium) : NaN;
+  const rr3 = riskPremium !== 0 ? (rw3/riskPremium) : NaN;
+
+  const setupWarning = (riskPremium <= 0 || rw1 <= 0)
+    ? `<div style="color:var(--pe);margin-top:8px;font-size:11.5px;">⚠ Is strike/expiry combination pe numbers ulta dikh rahe hain (SL par loss ya TP par profit expected jaisa nahi hai) — shayad strike bahut deep ITM/OTM hai ya DTE/IV check kar lo.</div>`
+    : '';
+
+  document.getElementById('signalSummary').innerHTML = `
+    <div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">
+      Tumhare Entry/TP numbers ke hisaab se: ${isBearish ? 'Bearish' : 'Bullish'} trade plan <span style="opacity:0.7;">(ye tumhare diye levels se calculate hua hai, market ka live prediction "Market Sentiment" card mein neeche hai)</span>
+    </div>
+    <div style="font-family:var(--mono);font-size:15px;color:${sideColor};font-weight:700;margin-bottom:10px;">
+      Suggested trade: BUY ${side} @ ${tradeK} strike
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12.5px;">
+      <div>Entry Premium: <b>${fmt(entryPrice)}</b></div>
+      <div>Lot Size: <b>${lotSize}</b></div>
+      <div style="color:var(--pe);">Risk (SL): ${fmt(riskPremium)} × ${lotSize} = ₹${fmt(riskRupee,0)}</div>
+      <div>R:R to TP1: <b>1 : ${fmt(rr1,2)}</b></div>
+      <div style="color:var(--ce);">Reward TP1: ${fmt(rw1)} × ${lotSize} = ₹${fmt(rw1Rupee,0)}</div>
+      <div>R:R to TP2: <b>1 : ${fmt(rr2,2)}</b></div>
+      <div style="color:var(--ce);">Reward TP2: ${fmt(rw2)} × ${lotSize} = ₹${fmt(rw2Rupee,0)}</div>
+      <div>R:R to TP3: <b>1 : ${fmt(rr3,2)}</b></div>
+      <div style="color:var(--ce);">Reward TP3: ${fmt(rw3)} × ${lotSize} = ₹${fmt(rw3Rupee,0)}</div>
+    </div>
+    ${setupWarning}
+  `;
+
+  // ---- Market Sentiment ----
+  const vix = parseFloat(document.getElementById('vixInput').value) || 0;
+  let fearLabel, fearColor;
+  if(vix < 12){ fearLabel = 'Low Fear (Calm)'; fearColor = 'var(--ce)'; }
+  else if(vix < 18){ fearLabel = 'Moderate'; fearColor = 'var(--amber)'; }
+  else { fearLabel = 'High Fear (Volatile)'; fearColor = 'var(--pe)'; }
+
+  // VIX zone gauge: red 0-12 boundary at "low" side is actually calm; conventionally
+  // <12 = calm/green, 12-18 = moderate/yellow, >18 = high fear/red. Draw a 0-30 scale bar.
+  const vixScaleMax = 30;
+  const vixPct = Math.min(100, Math.max(0, (vix/vixScaleMax)*100));
+  document.getElementById('vixGauge').innerHTML = `
+    <div style="position:relative;height:22px;border-radius:4px;overflow:hidden;background:linear-gradient(to right, #22C583 0%, #22C583 40%, #E8A83C 40%, #E8A83C 60%, #F0553D 60%, #F0553D 100%);">
+      <div style="position:absolute;top:-4px;left:${vixPct}%;transform:translateX(-50%);width:2px;height:30px;background:#fff;box-shadow:0 0 4px #fff;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--dim);margin-top:3px;font-family:var(--mono);">
+      <span>0 (calm)</span><span>12</span><span>18</span><span>30+ (extreme)</span>
+    </div>
+  `;
+
+  let pcrLabel = 'Data nahi — Upstox chain pull karo', pcrColor = 'var(--dim)';
+  if(livePCR!=null){
+    if(livePCR > 1.2){ pcrLabel = 'Bullish bias'; pcrColor = 'var(--ce)'; }
+    else if(livePCR < 0.8){ pcrLabel = 'Bearish bias'; pcrColor = 'var(--pe)'; }
+    else { pcrLabel = 'Neutral'; pcrColor = 'var(--amber)'; }
+  }
+
+  let trendLabel = livePCR!=null ? 'Neutral' : 'No live data yet', trendColor = 'var(--dim)';
+  if(livePCR!=null){
+    trendColor = 'var(--amber)';
+    if(livePCR > 1.2) { trendLabel = 'Bullish'; trendColor = 'var(--ce)'; }
+    else if(livePCR < 0.8) { trendLabel = 'Bearish'; trendColor = 'var(--pe)'; }
+  }
+
+  const sentGrid = document.getElementById('sentimentGrid');
+  sentGrid.innerHTML = `
+    <div class="g-cell hi">
+      <div class="label">Overall Trend (PCR-based, live)</div>
+      <div class="val" style="color:${trendColor};font-size:${livePCR!=null?'20px':'13px'};">${trendLabel}</div>
+    </div>
+    <div class="g-cell">
+      <div class="label">PCR (Put/Call OI) ${livePCR!=null ? fmt(livePCR,2) : ''}</div>
+      <div class="val" style="color:${pcrColor};font-size:13px;">${pcrLabel}</div>
+    </div>
+    <div class="g-cell">
+      <div class="label">India VIX Fear Gauge</div>
+      <div class="val" style="color:${fearColor};font-size:15px;">${fearLabel}</div>
+    </div>
+  `;
+
+  // Default needle position from PCR (news fetch, if used, will override this with news-based sentiment)
+  const pcrScore = livePCR!=null ? Math.max(0,Math.min(100, ((livePCR-0.5)/1.5)*100 )) : 50;
+  const pcrGaugeLabel = livePCR!=null ? (pcrScore>66?'Bullish':(pcrScore<33?'Bearish':'Neutral')) : 'No live data';
+  drawSentimentNeedle(pcrScore, pcrGaugeLabel);
+
+  // ---- ARTH: AI Risk Thermometer (custom composite heuristic, not an official metric) ----
+  // Component 1: VIX — higher fear = higher risk (0-30 scale -> 0-100)
+  const vixRisk = Math.min(100, (vix/30)*100);
+  // Component 2: PCR extremity — the further PCR is from a "neutral" 1.0, the more one-sided
+  // (and potentially crowded/risky) positioning looks. Unknown PCR defaults to a mid score.
+  const pcrRisk = livePCR!=null ? Math.min(100, Math.abs(livePCR-1)*100) : 50;
+  // Component 3: Expiry-nearness — fewer days to expiry means bigger gamma swings for small
+  // index moves (the "explosive near-expiry" effect we saw earlier), so risk rises as dte->0.
+  const dteRisk = Math.min(100, Math.max(0, (3 - dte) / 3 * 100));
+
+  const arthScore = Math.round(vixRisk*0.4 + pcrRisk*0.3 + dteRisk*0.3);
+  let arthLabel, arthColor;
+  if(arthScore < 30){ arthLabel='Low Risk'; arthColor='#22C583'; }
+  else if(arthScore < 55){ arthLabel='Moderate Risk'; arthColor='#E8A83C'; }
+  else if(arthScore < 75){ arthLabel='High Risk'; arthColor='#F0553D'; }
+  else { arthLabel='Extreme Risk'; arthColor='#B91C1C'; }
+
+  document.getElementById('arthGauge').innerHTML = `
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div style="position:relative;width:60px;height:110px;flex-shrink:0;">
+        <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:22px;height:90px;border-radius:11px;background:#1b2129;border:1px solid var(--line);overflow:hidden;display:flex;align-items:flex-end;">
+          <div style="width:100%;height:${arthScore}%;background:${arthColor};transition:height 0.3s;"></div>
+        </div>
+        <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:32px;height:32px;border-radius:50%;background:${arthColor};border:3px solid var(--panel);"></div>
+      </div>
+      <div>
+        <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:${arthColor};">${arthScore}<span style="font-size:14px;color:var(--dim);">/100</span></div>
+        <div style="font-family:var(--mono);font-size:14px;color:${arthColor};margin-top:2px;">${arthLabel}</div>
+        <div style="font-size:10.5px;color:var(--dim);margin-top:6px;line-height:1.5;">
+          VIX contribution: ${fmt(vixRisk,0)} · PCR contribution: ${fmt(pcrRisk,0)} · Expiry-nearness: ${fmt(dteRisk,0)}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Strike table
+  const atm = nearestStep(spot, step);
+  const body = document.getElementById('strikeBody');
+  let rows = '';
+  for(let i=-numStrikes;i<=numStrikes;i++){
+    const K = atm + i*step;
+    const live = liveChain ? liveChain[K] : null;
+    const angelK = angelChain ? angelChain[K] : null;
+
+    // "now" values: prefer live LTP as the displayed price, but keep the pure BS
+    // "now" value around for the Δ calc so we're comparing like-for-like (theory vs theory).
+    // Mixing a real market LTP with a theoretical "after" price was producing nonsense deltas
+    // (e.g. PE showing +ve even when spot rises) because the two numbers come from different
+    // valuation bases (real market vs model). The Δ must always come from the same model.
+    const ceNIv = (live && live.ceIv) || (angelK && angelK.CE && angelK.CE.iv) || iv;
+    const peNIv = (live && live.peIv) || (angelK && angelK.PE && angelK.PE.iv) || iv;
+    const ceBsNow = bs(spot, K, dte, ceNIv, rate, 'CE');
+    const peBsNow = bs(spot, K, dte, peNIv, rate, 'PE');
+    const ceLiveLtp = (live && live.ceLtp!=null) ? live.ceLtp : null;
+    const peLiveLtp = (live && live.peLtp!=null) ? live.peLtp : null;
+    const ceNowPrice = ceLiveLtp!=null ? ceLiveLtp : ceBsNow.price;
+    const peNowPrice = peLiveLtp!=null ? peLiveLtp : peBsNow.price;
+
+    // "after move" values: always simulated via BS using strike's own IV (live if we have it)
+    const ceA = bs(newSpot, K, dte, ceNIv, rate, 'CE');
+    const peA = bs(newSpot, K, dte, peNIv, rate, 'PE');
+
+    // Δ = theoretical after − theoretical now (both same model), so direction is always correct.
+    // If a live LTP exists, scale the theoretical Δ onto it so the displayed "after" number
+    // still lines up with the real market anchor instead of jumping to a pure-model price.
+    const ceThDelta = ceA.price - ceBsNow.price;
+    const peThDelta = peA.price - peBsNow.price;
+    const ceAfterDisplay = ceLiveLtp!=null ? Math.max(0, ceLiveLtp + ceThDelta) : ceA.price;
+    const peAfterDisplay = peLiveLtp!=null ? Math.max(0, peLiveLtp + peThDelta) : peA.price;
+    const ceD = ceAfterDisplay - ceNowPrice;
+    const peD = peAfterDisplay - peNowPrice;
+    const tag = live ? ' <span class="badge" style="margin-left:4px;padding:1px 4px;">upstox</span>' : (angelK ? ' <span class="badge" style="margin-left:4px;padding:1px 4px;">angel iv</span>' : '');
+    rows += `<tr class="${K===atm?'atm':''}">
+      <td>${K}${tag}</td>
+      <td>${fmt(ceNowPrice)}</td>
+      <td>${fmt(ceAfterDisplay)}</td>
+      <td class="${ceD>=0?'up':'down'}">${ceD>=0?'+':''}${fmt(ceD)}</td>
+      <td>${fmt(peNowPrice)}</td>
+      <td>${fmt(peAfterDisplay)}</td>
+      <td class="${peD>=0?'up':'down'}">${peD>=0?'+':''}${fmt(peD)}</td>
+    </tr>`;
+  }
+  body.innerHTML = rows;
+}
+
+// wire inputs
+['spot','stepSize','iv','dte','rate','moveVal','numStrikes','lvlEntry','lvlSL','lvlTP1','lvlTP2','lvlTP3','vixInput','lotSize'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', render);
+});
+document.getElementById('focusStrike').addEventListener('change', render);
+document.getElementById('tradeStrike').addEventListener('change', render);
+
+render();
+</script>
+</body>
+</html>
