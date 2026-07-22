@@ -10,9 +10,6 @@
     { "src": "api/router.js",       "use": "@vercel/node" },
     { "src": "api/chart.js",        "use": "@vercel/node" },
     { "src": "api/expiry.js",       "use": "@vercel/node" },
-    { "src": "api/upstox-chain.js", "use": "@vercel/node" },
-    { "src": "api/angel-greeks.js", "use": "@vercel/node" },
-    { "src": "api/upstox-auth.js",  "use": "@vercel/node" },
     { "src": "index.html",          "use": "@vercel/static" }
   ],
   "routes": [
@@ -25,9 +22,6 @@
     { "src": "/api/router",       "dest": "/api/router.js"       },
     { "src": "/api/chart",        "dest": "/api/chart.js"        },
     { "src": "/api/expiry",       "dest": "/api/expiry.js"       },
-    { "src": "/api/upstox-chain", "dest": "/api/upstox-chain.js" },
-    { "src": "/api/angel-greeks", "dest": "/api/angel-greeks.js" },
-    { "src": "/api/upstox-auth",  "dest": "/api/upstox-auth.js"  },
     { "src": "/(.*)",             "dest": "/index.html"          }
   ]
 }
