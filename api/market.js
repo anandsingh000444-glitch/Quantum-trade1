@@ -3,7 +3,7 @@
 
 export const config = { runtime: 'nodejs' };
 
-const UPSTOX_TOKEN = process.env.UPSTOX_TOKEN || 'eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiI3VkE4TUciLCJqdGkiOiI2YTRiM2NhYjgyMjE5YjVmOTFhNmNlNjEiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlzRXh0ZW5kZWQiOnRydWUsImlhdCI6MTc4MzMxNTYyNywiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxODE0OTExMjAwfQ.PthbQKez4K2aOPB73VUtTCZR4ic5IdwrgNEal4vz51U';
+const UPSTOX_TOKEN = process.env.UPSTOX_APP_TOKEN || process.env.UPSTOX_TOKEN || '';
 const TWELVE_KEY  = process.env.TWELVE_DATA_KEY || '18d87171681a4adea4e95f4175c8294d';
 const ALPHA_KEY   = process.env.ALPHA_VANTAGE_KEY || '9YWZWLNKRZS1DMTT';
 
