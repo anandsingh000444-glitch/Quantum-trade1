@@ -80,6 +80,11 @@ function calcMaxPain(rows) {
 }
 
 export default async function handler(req, res) {
+  // Support dynamic token from frontend (localStorage)
+  const headerToken = req.headers['x-upstox-token'];
+  if (headerToken && headerToken.startsWith('eyJ')) {
+    process.env.UPSTOX_TOKEN = headerToken;
+  }
   res.setHeader('Access-Control-Allow-Origin','*');
   res.setHeader('Access-Control-Allow-Methods','GET,OPTIONS');
   if(req.method==='OPTIONS')return res.status(200).end();
