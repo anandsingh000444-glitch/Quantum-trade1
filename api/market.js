@@ -90,6 +90,35 @@ async function fromTwelve(sym) {
 }
 
 export default async function handler(req, res) {
+  // F&O stocks endpoint
+  if(req.query.type==='stocks'){
+    try{
+      // Fetch Nifty 50 stocks from Yahoo Finance
+      const symbols=['RELIANCE.NS','TCS.NS','HDFCBANK.NS','INFY.NS','ICICIBANK.NS',
+        'SBIN.NS','BHARTIARTL.NS','ITC.NS','TATAMOTORS.NS','TATASTEEL.NS',
+        'HINDALCO.NS','JSWSTEEL.NS','BAJFINANCE.NS','MARUTI.NS','SUNPHARMA.NS',
+        'WIPRO.NS','HCLTECH.NS','AXISBANK.NS','KOTAKBANK.NS','LT.NS',
+        'ADANIENT.NS','ADANIPORTS.NS','NTPC.NS','POWERGRID.NS','ONGC.NS',
+        'COALINDIA.NS','GRASIM.NS','DRREDDY.NS','CIPLA.NS','ZOMATO.NS'];
+      
+      const stocks={};
+      // Fetch in batches
+      const yahooUrl='https://query1.finance.yahoo.com/v7/finance/quote?symbols='+symbols.slice(0,10).join(',');
+      const r=await fetch(yahooUrl,{headers:{'User-Agent':'Mozilla/5.0'},signal:AbortSignal.timeout(8000)});
+      if(r.ok){
+        const d=await r.json();
+        const quotes=d?.quoteResponse?.result||[];
+        quotes.forEach(q=>{
+          const sym=q.symbol.replace('.NS','');
+          stocks[sym]={price:+(q.regularMarketPrice||0).toFixed(2),chg:+(q.regularMarketChangePercent||0).toFixed(2),sim:false};
+        });
+      }
+      return res.json({stocks,updatedAt:new Date().toISOString()});
+    }catch(e){
+      return res.json({stocks:{},error:e.message});
+    }
+  }
+
   res.setHeader('Access-Control-Allow-Origin','*');
   res.setHeader('Access-Control-Allow-Methods','GET,OPTIONS');
   if (req.method==='OPTIONS') return res.status(200).end();
